@@ -1,0 +1,19 @@
+{
+  "name": "fullstack-open-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/dzabeligan/fullstack-open-server.git",
+  "author": "dzabeligan <dzabeligan@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
