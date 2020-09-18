@@ -2,45 +2,25 @@ require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
-const app = express()
 const Person = require('./models/person')
 
-app.use(express.json())
-app.use(cors())
-app.use(express.static('build'))
+const app = express()
 
-const logger = morgan((tokens, req, res) => {
-  const body =
-    tokens.method(req, res) === 'POST' ? JSON.stringify(req.body) : ''
-
-  return [
-    tokens.method(req, res),
-    tokens.url(req, res),
-    tokens.status(req, res),
-    tokens.res(req, res, 'content-length'),
-    '-',
-    tokens['response-time'](req, res),
-    'ms',
-    body,
-  ].join(' ')
+morgan.token('body', function (req) {
+  return req.method === 'POST' ? JSON.stringify(req.body) : ''
 })
 
-app.use(logger)
+app.use(express.static('build'))
+app.use(express.json())
+app.use(cors())
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
-
-  if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' })
-  } else if (error.name === 'ValidationError') {
-    console.log(error)
-    return response.status(400).json({ error: error.message })
-  } else console.log(error)
-
-  next(error)
-}
-
-app.use(errorHandler)
+app.get('/info', (request, response) => {
+  Person.countDocuments({}).then((count) => {
+    const info = `<div>Phonebook has info for ${count} people</div><p>${new Date().toString()}</p>`
+    response.send(info)
+  })
+})
 
 app.get('/api/persons', (request, response) => {
   Person.find({}).then((persons) => {
@@ -55,13 +35,6 @@ app.get('/api/persons/:id', (request, response, next) => {
       else response.status(404).end()
     })
     .catch((error) => next(error))
-})
-
-app.get('/info', (request, response) => {
-  Person.countDocuments({}).then((count) => {
-    const info = `<div>Phonebook has info for ${count} people</div><p>${new Date().toString()}</p>`
-    response.send(info)
-  })
 })
 
 app.post('/api/persons', (request, response, next) => {
@@ -112,6 +85,20 @@ app.delete('/api/persons/:id', (request, response, next) => {
     })
     .catch((error) => next(error))
 })
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
